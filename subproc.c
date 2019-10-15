@@ -151,6 +151,7 @@ bool subproc_persistentModeStateMachine(run_t* run) {
         return false;
     }
 
+    //persistent处理循环
     for (;;) {
         switch (run->runState) {
             case _HF_RS_WAITING_FOR_INITIAL_READY: {
@@ -175,6 +176,7 @@ bool subproc_persistentModeStateMachine(run_t* run) {
                 }
                 run->runState = _HF_RS_SEND_DATA;
                 /* The current persistent round is done */
+                //会返回
                 return true;
             }; break;
             default:
@@ -251,6 +253,7 @@ static bool subproc_PrepareExecv(run_t* run) {
         /* close_stderr= */ run->global->exe.nullifyStdio);
 
     /* The bitmap/feedback structure */
+    // 共享内存的句柄稳定为_HF_BITMAP_FD
     if (TEMP_FAILURE_RETRY(dup2(run->global->feedback.bbFd, _HF_BITMAP_FD)) == -1) {
         PLOG_E("dup2(%d, _HF_BITMAP_FD=%d)", run->global->feedback.bbFd, _HF_BITMAP_FD);
         return false;
@@ -307,15 +310,18 @@ static bool subproc_New(run_t* run) {
 #if defined(SOCK_CLOEXEC)
         sock_type |= SOCK_CLOEXEC;
 #endif
+        //建立已连接的双向套接字对
         if (socketpair(AF_UNIX, sock_type, 0, sv) == -1) {
             PLOG_W("socketpair(AF_UNIX, SOCK_STREAM, 0, sv)");
             return false;
         }
+        //父为persistentSock
         run->persistentSock = sv[0];
     }
 
     LOG_D("Forking new process for thread: %" PRId32, run->fuzzNo);
 
+    //fork子进程
     run->pid = arch_fork(run);
     if (run->pid == -1) {
         PLOG_E("Couldn't fork");
@@ -339,6 +345,7 @@ static bool subproc_New(run_t* run) {
         signal(SIGALRM, SIG_DFL);
 
         if (run->global->exe.persistent) {
+            //子固定为_HF_PERSISTENT_FD
             if (TEMP_FAILURE_RETRY(dup2(sv[1], _HF_PERSISTENT_FD)) == -1) {
                 PLOG_F("dup2('%d', '%d')", sv[1], _HF_PERSISTENT_FD);
             }
@@ -346,6 +353,7 @@ static bool subproc_New(run_t* run) {
             close(sv[1]);
         }
 
+        //子进程准备
         if (!subproc_PrepareExecv(run)) {
             LOG_E("subproc_PrepareExecv() failed");
             exit(EXIT_FAILURE);
@@ -362,6 +370,7 @@ static bool subproc_New(run_t* run) {
     LOG_D("Launched new process, pid=%d, thread: %" PRId32 " (concurrency: %zd)", (int)run->pid,
         run->fuzzNo, run->global->threads.threadsMax);
 
+    //设置socket AIO
     arch_prepareParentAfterFork(run);
 
     if (run->global->exe.persistent) {
@@ -376,12 +385,14 @@ static bool subproc_New(run_t* run) {
 bool subproc_Run(run_t* run) {
     run->timeStartedMillis = util_timeNowMillis();
 
+    //创建子
     if (!subproc_New(run)) {
         LOG_E("subproc_New()");
         return false;
     }
 
     arch_prepareParent(run);
+    //收获子，返回表示结果已经收集
     arch_reapChild(run);
 
     int64_t diffMillis = util_timeNowMillis() - run->timeStartedMillis;

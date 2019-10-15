@@ -40,6 +40,7 @@
 #define MX_RWLOCK_UNLOCK(m) util_mutexRWUnlock(m, __func__, __LINE__)
 
 /* Atomics */
+// 原子操作
 #define ATOMIC_GET(x) __atomic_load_n(&(x), __ATOMIC_RELAXED)
 #define ATOMIC_SET(x, y) __atomic_store_n(&(x), y, __ATOMIC_RELAXED)
 #define ATOMIC_CLEAR(x) __atomic_store_n(&(x), 0, __ATOMIC_RELAXED)

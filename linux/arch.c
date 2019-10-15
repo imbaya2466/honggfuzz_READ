@@ -172,6 +172,7 @@ bool arch_launchChild(run_t* run) {
 #if defined(__NR_execveat)
     syscall(__NR_execveat, run->global->linux.exeFd, "", args, environ, AT_EMPTY_PATH);
 #endif /* defined__NR_execveat) */
+    //执行目标
     execve(args[0], (char* const*)args, environ);
     int errno_cpy = errno;
     alarm(1);
@@ -197,12 +198,15 @@ void arch_prepareParentAfterFork(run_t* run) {
             .type = F_OWNER_TID,
             .pid = syscall(__NR_gettid),
         };
+        //将IO可用信号重定向到特定线程
         if (fcntl(run->persistentSock, F_SETOWN_EX, &fown)) {
             PLOG_F("fcntl(%d, F_SETOWN_EX)", run->persistentSock);
         }
+        //设置可获得的信号
         if (fcntl(run->persistentSock, F_SETSIG, SIGIO) == -1) {
             PLOG_F("fcntl(%d, F_SETSIG, SIGIO)", run->persistentSock);
         }
+        //设置异步属性
         if (fcntl(run->persistentSock, F_SETFL, O_ASYNC) == -1) {
             PLOG_F("fcntl(%d, F_SETFL, O_ASYNC)", run->persistentSock);
         }
@@ -243,6 +247,7 @@ static bool arch_checkWait(run_t* run) {
         LOG_D("pid=%d returned with status: %s", pid,
             subproc_StatusToStr(status, statusStr, sizeof(statusStr)));
 
+        //路径分析
         arch_traceAnalyze(run, status, pid);
 
         if (pid == run->pid && (WIFEXITED(status) || WIFSIGNALED(status))) {
@@ -258,12 +263,18 @@ static bool arch_checkWait(run_t* run) {
 }
 
 void arch_reapChild(run_t* run) {
+    //检测收获循环
     for (;;) {
+        //persistent模式检测，返回true表示读到ready标志了
         if (subproc_persistentModeStateMachine(run)) {
             break;
         }
 
+        //当发生目标进程状态变化，persistent和普通模式都会运行循环下方的结果检查逻辑
+
+        //检测是否超时
         subproc_checkTimeLimit(run);
+        //检测fuzz是否终止
         subproc_checkTermination(run);
 
         const struct timespec ts = {
@@ -271,11 +282,13 @@ void arch_reapChild(run_t* run) {
             .tv_nsec = (1000ULL * 1000ULL * 250ULL),
         };
         /* Return with SIGIO, SIGCHLD */
+        // 监听俩个信号  每次等0.25s  成功时返回信号值
         int sig = sigtimedwait(&run->global->exe.waitSigSet, NULL, &ts /* 0.25s */);
         if (sig == -1 && (errno != EAGAIN && errno != EINTR)) {
             PLOG_F("sigwaitinfo(SIGIO|SIGCHLD)");
         }
 
+        //等待子，子结束返回true
         if (arch_checkWait(run)) {
             run->pid = 0;
             break;
@@ -285,6 +298,9 @@ void arch_reapChild(run_t* run) {
             break;
         }
     }
+
+    
+    //检测是否有sanitizer报告
     if (run->global->sanitizer.enable) {
         char crashReport[PATH_MAX];
         snprintf(crashReport, sizeof(crashReport), "%s/%s.%d", run->global->io.workDir, kLOGPREFIX,

@@ -332,6 +332,7 @@ bool input_writeCovFile(const char* dir, const uint8_t* data, size_t len) {
     return true;
 }
 
+//添加语料文件
 void input_addDynamicInput(
     honggfuzz_t* hfuzz, const uint8_t* data, size_t len, uint64_t cov[4], const char* path) {
     ATOMIC_SET(hfuzz->timing.lastCovUpdate, time(NULL));
@@ -387,6 +388,7 @@ bool input_prepareDynamicInput(run_t* run, bool needs_mangle) {
         if (run->global->io.dynfileqCurrent == NULL) {
             run->global->io.dynfileqCurrent = TAILQ_FIRST(&run->global->io.dynfileq);
         }
+        //获得队列中的输入
         current = run->global->io.dynfileqCurrent;
         run->global->io.dynfileqCurrent = TAILQ_NEXT(run->global->io.dynfileqCurrent, pointers);
     }
@@ -394,6 +396,7 @@ bool input_prepareDynamicInput(run_t* run, bool needs_mangle) {
     input_setSize(run, current->size);
     memcpy(run->dynamicFile, current->data, current->size);
 
+    //变异
     if (needs_mangle) {
         mangle_mangleContent(run);
     }

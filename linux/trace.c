@@ -255,15 +255,19 @@ static struct {
     [SIGTRAP].important = false,
     [SIGTRAP].descr = "SIGTRAP",
 
+    //非法指令
     [SIGILL].important = true,
     [SIGILL].descr = "SIGILL",
 
+    //算数异常
     [SIGFPE].important = true,
     [SIGFPE].descr = "SIGFPE",
 
+    //段错误
     [SIGSEGV].important = true,
     [SIGSEGV].descr = "SIGSEGV",
 
+    //总线错误
     [SIGBUS].important = true,
     [SIGBUS].descr = "SIGBUS",
 
@@ -275,6 +279,7 @@ static struct {
     [SIGVTALRM].important = false,
     [SIGVTALRM].descr = "SIGVTALRM-TMOUT",
 
+    //错误的系统调用
     /* seccomp-bpf kill */
     [SIGSYS].important = true,
     [SIGSYS].descr = "SIGSYS",
@@ -998,6 +1003,7 @@ static void arch_traceExitSaveData(run_t* run, pid_t pid) {
     if (run->pid != pid) {
         return;
     }
+    //分析Asan的报告
     funcCnt = arch_parseAsanReport(run, pid, funcs, &crashAddr, &op);
 
     /*
@@ -1054,6 +1060,7 @@ static void arch_traceExitSaveData(run_t* run, pid_t pid) {
         }
     }
 
+    //保存crash的文件
     int fd = TEMP_FAILURE_RETRY(open(run->crashFileName, O_WRONLY | O_EXCL | O_CREAT, 0600));
     if (fd == -1 && errno == EEXIST) {
         LOG_I("It seems that '%s' already exists, skipping", run->crashFileName);
@@ -1191,6 +1198,7 @@ void arch_traceAnalyze(run_t* run, int status, pid_t pid) {
              * analysis. Otherwise just unwind and get stack hash signature.
              */
             if (run->mainWorker) {
+                //完整的trace数据分析
                 arch_traceSaveData(run, pid);
             } else {
                 arch_traceAnalyzeData(run, pid);

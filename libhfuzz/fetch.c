@@ -34,12 +34,15 @@ __attribute__((constructor)) static void init(void) {
     }
 }
 
+//获得一份变异
 void HonggfuzzFetchData(const uint8_t** buf_ptr, size_t* len_ptr) {
+    //告知已经有了新的路径数据
     if (!files_writeToFd(_HF_PERSISTENT_FD, &HFReadyTag, sizeof(HFReadyTag))) {
         LOG_F("writeToFd(size=%zu, readyTag) failed", sizeof(HFReadyTag));
     }
 
     uint64_t rcvLen;
+    //获得变异输入数据大小
     ssize_t sz = files_readFromFd(_HF_PERSISTENT_FD, (uint8_t*)&rcvLen, sizeof(rcvLen));
     if (sz == -1) {
         PLOG_F("readFromFd(fd=%d, size=%zu) failed", _HF_PERSISTENT_FD, sizeof(rcvLen));

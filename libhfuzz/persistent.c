@@ -52,6 +52,7 @@ __attribute__((constructor)) static void initializePersistent(void) {
     }
 }
 
+
 void HF_ITER(const uint8_t** buf_ptr, size_t* len_ptr) {
     HonggfuzzFetchData(buf_ptr, len_ptr);
 }

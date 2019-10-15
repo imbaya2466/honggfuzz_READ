@@ -73,6 +73,7 @@ static void initializeInstrument(void) {
             "Link your fuzzed binaries with the newest honggfuzz sources via hfuzz-clang(++)",
             (size_t)st.st_size, sizeof(feedback_t));
     }
+    //打开同一个共享内存句柄
     int mflags = files_getTmpMapFlags(MAP_SHARED, /* nocore= */ true);
     if ((feedback = mmap(NULL, sizeof(feedback_t), PROT_READ | PROT_WRITE, mflags, _HF_BITMAP_FD,
              0)) == MAP_FAILED) {
@@ -92,6 +93,7 @@ __attribute__((constructor)) void hfuzzInstrumentInit(void) {
 }
 
 /* Reset the counters of newly discovered edges/pcs/features */
+// 这些是新发现边的计数器
 void instrumentClearNewCov() {
     feedback->pidFeedbackPc[my_thread_no] = 0U;
     feedback->pidFeedbackEdge[my_thread_no] = 0U;
@@ -323,6 +325,7 @@ __attribute__((weak)) ATTRIBUTE_X86_REQUIRE_SSE42 void __sanitizer_cov_indir_cal
  * -fsanitize-coverage=trace-pc-guard
  */
 static bool guards_initialized = false;
+// 设置 guard的初始值，start与stop表示指向的guard区间
 ATTRIBUTE_X86_REQUIRE_SSE42 void __sanitizer_cov_trace_pc_guard_init(
     uint32_t* start, uint32_t* stop) {
     guards_initialized = true;

@@ -629,6 +629,7 @@ void mangle_mangleContent(run_t* run) {
 
     mangle_Resize(run, /* printable= */ run->global->cfg.only_printable);
 
+    //随机变异
     /* Max number of stacked changes is, by default, 6 */
     uint64_t changesCnt = util_rndGet(1, run->global->mutate.mutationsPerRun);
     for (uint64_t x = 0; x < changesCnt; x++) {

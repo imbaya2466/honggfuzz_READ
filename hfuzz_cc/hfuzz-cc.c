@@ -23,7 +23,9 @@
 static bool isCXX = false;
 static bool isGCC = false;
 
+// hclang gcc都是指在这里
 /* Embed libhfuzz.a inside this binary */
+// 此二进制文件中嵌入libhfuzz.a
 __asm__("\n"
         "   .global lhfuzz_start\n"
         "   .global lhfuzz_end\n"

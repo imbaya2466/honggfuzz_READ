@@ -295,6 +295,8 @@ static void mainThreadLoop(honggfuzz_t* hfuzz) {
     }
 }
 
+
+//main 
 int main(int argc, char** argv) {
     /*
      * Work around CygWin/MinGW
@@ -325,8 +327,8 @@ int main(int argc, char** argv) {
     }
 
     sigemptyset(&hfuzz.exe.waitSigSet);
-    sigaddset(&hfuzz.exe.waitSigSet, SIGIO);   /* Persistent socket data */
-    sigaddset(&hfuzz.exe.waitSigSet, SIGCHLD); /* Ping from the signal thread */
+    sigaddset(&hfuzz.exe.waitSigSet, SIGIO);   /* Persistent socket data  描述符上可以进行I/O*/
+    sigaddset(&hfuzz.exe.waitSigSet, SIGCHLD); /* Ping from the signal thread 当子进程停止或退出时通知父进程*/
 
     if (hfuzz.display.useScreen) {
         display_init();
@@ -359,6 +361,7 @@ int main(int argc, char** argv) {
         LOG_F("Couldn't parse symbols whitelist file ('%s')", hfuzzl.symsWlFile);
     }
 
+    //创建共享内存 bbFd是句柄 feedbackMap是地址
     if (!(hfuzz.feedback.feedbackMap = files_mapSharedMem(
               sizeof(feedback_t), &hfuzz.feedback.bbFd, "hfuzz-feedback", /* nocore= */ true))) {
         LOG_F("files_mapSharedMem(sz=%zu, dir='%s') failed", sizeof(feedback_t), hfuzz.io.workDir);
@@ -366,6 +369,7 @@ int main(int argc, char** argv) {
 
     setupRLimits();
     setupSignalsPreThreads();
+    //fuzz 线程开启
     fuzz_threadsStart(&hfuzz);
 
     pthread_t sigthread;

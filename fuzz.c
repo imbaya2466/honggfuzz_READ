@@ -204,6 +204,7 @@ static void fuzz_perfFeedback(run_t* run) {
     int64_t diff1 = run->global->linux.hwCnts.cpuBranchCnt - run->linux.hwCnts.cpuBranchCnt;
 
     /* Any increase in coverage (edge, pc, cmp, hw) counters forces adding input to the corpus */
+    //覆盖率增加任何都会添加到语料库
     if (run->linux.hwCnts.newBBCnt > 0 || softCntPc > 0 || softCntEdge > 0 || softCntCmp > 0 ||
         diff0 < 0 || diff1 < 0) {
         if (diff0 < 0) {
@@ -234,6 +235,7 @@ static void fuzz_perfFeedback(run_t* run) {
                 run->global->linux.hwCnts.bbCnt, run->global->linux.hwCnts.softCntEdge,
                 run->global->linux.hwCnts.softCntPc, run->global->linux.hwCnts.softCntCmp);
 
+            //添加到语料库
             input_addDynamicInput(run->global, run->dynamicFile, run->dynamicFileSz,
                 (uint64_t[4]){0, 0, 0, 0}, "[DYNAMIC]");
         }
@@ -319,6 +321,7 @@ static bool fuzz_runVerifier(run_t* run) {
     return true;
 }
 
+//
 static bool fuzz_fetchInput(run_t* run) {
     {
         fuzzState_t st = fuzz_getState(run->global);
@@ -336,6 +339,7 @@ static bool fuzz_fetchInput(run_t* run) {
         return input_prepareDynamicFileForMinimization(run);
     }
 
+//变异
     if (fuzz_getState(run->global) == _HF_STATE_DYNAMIC_MAIN) {
         if (run->global->exe.externalCommand) {
             if (!input_prepareExternalFile(run)) {
@@ -402,6 +406,7 @@ static void fuzz_fuzzLoop(run_t* run) {
     run->linux.hwCnts.bbCnt = 0;
     run->linux.hwCnts.newBBCnt = 0;
 
+    //获取输入、变异
     if (!fuzz_fetchInput(run)) {
         if (run->global->cfg.minimize && fuzz_getState(run->global) == _HF_STATE_DYNAMIC_MINIMIZE) {
             fuzz_setTerminating();
@@ -410,10 +415,12 @@ static void fuzz_fuzzLoop(run_t* run) {
         }
         LOG_F("Cound't prepare input for fuzzing");
     }
+    //子进程运行  此时已分析完结果
     if (!subproc_Run(run)) {
         LOG_F("Couldn't run fuzzed command");
     }
 
+    //更新代码覆盖率
     if (run->global->feedback.dynFileMethod != _HF_DYNFILE_NONE) {
         fuzz_perfFeedback(run);
     }
@@ -528,6 +535,7 @@ static void* fuzz_threadNew(void* arg) {
         if (hfuzz->socketFuzzer.enabled) {
             fuzz_fuzzLoopSocket(&run);
         } else {
+            // fuzzLoop
             fuzz_fuzzLoop(&run);
         }
 
